@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>佐世保5番街店 定時報告ツール(終日SIM修正版)</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #f4f4f4; 
+            padding: 10px; 
+            font-size: 16px; 
+            color: #333; 
+            margin-bottom: 350px; 
+            line-height: 1.4;
+        }
+        .section { background: white; padding: 15px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        h3 { border-left: 5px solid #bf0000; padding-left: 10px; margin: 0 0 12px 0; font-size: 16px; color: #bf0000; }
+        .item { display: flex; flex-direction: column; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .item-label { font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+        .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .counter-group { display: flex; align-items: center; gap: 12px; }
+        button { min-width: 48px; height: 48px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; background: #eee; border-radius: 8px; font-size: 20px; touch-action: manipulation; }
+        .count-val { min-width: 35px; text-align: center; font-weight: bold; font-size: 22px; color: #bf0000; }
+        .total-input { width: 70px; height: 40px; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fffde7; -webkit-appearance: none; }
+        #preview-area { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.15); z-index: 100; border-top: 4px solid #bf0000; border-radius: 15px 15px 0 0; }
+        textarea { width: 100%; height: 100px; margin-top: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; padding: 8px; box-sizing: border-box; background: #f9f9f9; }
+        .btn-main { width: 100%; height: 55px; background: #bf0000; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; }
+        .btn-sub { width: 100%; height: 50px; background: #444; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 8px; }
+        .report-type { display: flex; gap: 8px; margin-bottom: 5px; }
+        .report-type label { flex: 1; text-align: center; padding: 12px 5px; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+        .report-type input { display: none; }
+        .active-report { background: #ffebeb !important; border-color: #bf0000 !important; font-weight: bold; color: #bf0000; }
+        .import-btn { width: 100%; height: 48px; background: #1976d2; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; font-size: 15px; }
+        .sim-input-row { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .sim-input-item { display: flex; align-items: center; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <div class="section" style="background: #e3f2fd;">
+        <h3>前日の報告を貼り付け</h3>
+        <textarea id="import_text" placeholder="昨日の報告を貼り付けて「セット」"></textarea>
+        <button class="import-btn" onclick="importFromReport()">前日累計をセット</button>
+    </div>
+
+    <div class="section">
+        <h3>報告タイミング</h3>
+        <div class="report-type">
+            <label id="label_13" class="active-report"><input type="radio" name="rtype" value="13" checked onclick="toggleReport(13)">13時報告</label>
+            <label id="label_16"><input type="radio" name="rtype" value="16" onclick="toggleReport(16)">16時報告</label>
+            <label id="label_last"><input type="radio" name="rtype" value="last" onclick="toggleReport('last')">終業報告</label>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>SIM実績</h3>
+        <div id="sim_history_box" class="sim-input-row" style="display:none;">
+            <div class="sim-input-item">
+                <span style="font-size:14px;">13時時点の累計</span>
+                <input type="number" id="sim_13_input" value="0" class="total-input">
+            </div>
+            <div id="sim_16_row" class="sim-input-item" style="display:none;">
+                <span style="font-size:14px;">16時までの獲得数</span>
+                <input type="number" id="sim_16_gain" value="0" class="total-input">
+            </div>
+        </div>
+        <div class="item">
+            <span class="item-label" id="sim_label">獲得数（今回分）</span>
+            <div class="controls">
+                <div class="counter-group">
+                    <button onclick="changeSIM(-1)">-</button>
+                    <span id="sim_now" class="count-val">0</span>
+                    <button onclick="changeSIM(1)">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="kpi-container" class="section">
+        <h3>KPI / その他</h3>
+    </div>
+
+    <div id="preview-area">
+        <button class="btn-main" onclick="generateReport()">レポートを作成</button>
+        <textarea id="report_text" readonly placeholder="ここにレポートが生成されます"></textarea>
+        <button class="btn-sub" onclick="copyReport()">コピーする</button>
+    </div>
+
+<script>
+    let Y_DATA = {};
+    const kpiItems = [
+        { id: 'rpay', name: '楽天ペイ設定数' }, { id: 'enq', name: 'アンケ回答数' },
+        { id: 'unext', name: 'U-NEXT' }, { id: 'hikari', name: 'ひかり' }, { id: 'turbo', name: 'Turbo' },
+        { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' }, { id: 'c1_pk', name: 'Ｐｋ', p: '１枚目' },
+        { id: 'c1_go', name: 'Ｇｏ', p: '１枚目' }, { id: 'c1_pr', name: 'Ｐｒ', p: '１枚目' },
+        { id: 'c2_sv', name: 'Ｓｖ', p: '２枚目' }, { id: 'c2_pk', name: 'Ｐｋ', p: '２枚目' },
+        { id: 'c2_go', name: 'Ｇｏ', p: '２枚目' }, { id: 'c2_pr', name: 'Ｐｒ', p: '２枚目' },
+        { id: 'kakeho', name: '１５分カケホ' }, { id: 'saikyo', name: '最強保護' },
+        { id: 'hosho', name: '交換保証' }, { id: 'appcare', name: 'AppCare' },
+        { id: 'mochikomi', name: '持込保証' }, { id: 'rusuban', name: '留守番電話' },
+        { id: 'adguard', name: 'ADGuard' }, { id: 'aosbox', name: 'AOSBOX' },
+        { id: 'pika', name: 'ピカプロDX' }, { id: 'reno13a', name: 'Reno13A' }
+    ];
+
+    const container = document.getElementById('kpi-container');
+    kpiItems.forEach(item => {
+        Y_DATA[item.id] = 0;
+        const label = item.p ? `(${item.p}) ${item.name}` : item.name;
+        container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
+    });
+
+    function importFromReport() {
+        const text = document.getElementById('import_text').value;
+        if(!text) return alert("貼り付けてください");
+        const lines = text.split('\n');
+        let simVal = 0;
+        const targetLabels = ["終業時点", "16時時点", "13時時点"];
+        for(let label of targetLabels) {
+            const line = lines.find(l => l.includes(label));
+            if(line) {
+                const m = line.match(/時点：\d+件(?:（[^）]+）|／(\d+)件)/);
+                if(m) {
+                    simVal = m[1] || line.match(/時点：(\d+)件/)[1];
+                    if(simVal != 0) break;
+                }
+            }
+        }
+        document.getElementById('sim_13_input').value = simVal;
+        const parts = text.split("（内訳：２枚目）");
+        const text1 = parts[0];
+        const text2 = parts[1] || "";
+        kpiItems.forEach(item => {
+            let match;
+            if (item.p === '１枚目') match = text1.match(new RegExp("↪︎" + item.name + "：\\d+件[／/](\\d+)件"));
+            else if (item.p === '２枚目') match = text2.match(new RegExp("↪︎" + item.name + "：\\d+件[／/](\\d+)件"));
+            else match = text.match(new RegExp(item.name + "：\\d+件[／/](\\d+)件"));
+            const val = match ? parseInt(match[1]) : 0;
+            Y_DATA[item.id] = val;
+            document.getElementById(item.id + '_total').value = val;
+            document.getElementById(item.id + '_now').innerText = "0";
+        });
+        alert("累計をセットしました！");
+    }
+
+    function toggleReport(val) {
+        document.getElementById('label_13').className = (val == 13) ? 'active-report' : '';
+        document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
+        document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
+        
+        const historyBox = document.getElementById('sim_history_box');
+        const sim16Row = document.getElementById('sim_16_row');
+        
+        if(val == 13) {
+            historyBox.style.display = 'none';
+        } else if(val == 16) {
+            historyBox.style.display = 'flex';
+            sim16Row.style.display = 'none';
+        } else {
+            historyBox.style.display = 'flex';
+            sim16Row.style.display = 'flex';
+        }
+    }
+
+    function changeSIM(v) {
+        const el = document.getElementById('sim_now');
+        el.innerText = Math.max(0, parseInt(el.innerText) + v);
+    }
+
+    function changeKPI(id, v) {
+        const nowEl = document.getElementById(id + '_now');
+        const totEl = document.getElementById(id + '_total');
+        let nowVal = parseInt(nowEl.innerText);
+        if (v > 0) nowVal++; else if (nowVal > 0) nowVal--;
+        nowEl.innerText = nowVal;
+        totEl.value = Y_DATA[id] + nowVal;
+    }
+
+    function generateReport() {
+        const type = document.querySelector('input[name="rtype"]:checked').value;
+        const s13 = parseInt(document.getElementById('sim_13_input').value) || 0;
+        const s16gain = parseInt(document.getElementById('sim_16_gain').value) || 0;
+        const sNow = parseInt(document.getElementById('sim_now').innerText) || 0;
+        const r = (id) => ({ n: parseInt(document.getElementById(id+'_now').innerText), t: parseInt(document.getElementById(id+'_total').value) });
+
+        let report = `【定時報告／佐世保５番街店】\n\n★ＳＩＭ（〜時まで獲得数／累計）\n\n`;
+        if(type == "13") {
+            report += `13時時点：${sNow}件（13時までの回線総販）\n16時時点：0件／0件\n終業時点：0件／0件\n`;
+        } else if(type == "16") {
+            report += `13時時点：${s13}件（13時までの回線総販）\n16時時点：${sNow}件／${s13+sNow}件\n終業時点：0件／0件\n`;
+        } else {
+            // 終業報告：13時(前日分)、16時(入力値)、終業(今回カウント)をすべて合算
+            report += `13時時点：${s13}件（13時までの回線総販）\n`;
+            report += `16時時点：${s16gain}件／${s13+s16gain}件\n`;
+            report += `終業時点：${sNow}件／${s13+s16gain+sNow}件\n`;
+        }
+
+        report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
+        ['rpay', 'enq', 'unext', 'hikari', 'turbo'].forEach(id => {
+            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
+        });
+        const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
+        const cardN = cids.reduce((s, id) => s + r(id).n, 0);
+        const cardT = cids.reduce((s, id) => s + r(id).t, 0);
+        report += `カード：${cardN}件／${cardT}件\n（内訳：１枚目）\n`;
+        ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `\n（内訳：２枚目）\n`;
+        ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name} : ${r(id).n}件／${r(id).t}件\n`);
+        const others = ['kakeho','saikyo','hosho','appcare','mochikomi','rusuban'];
+        report += `\n`;
+        others.forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
+        ['adguard','aosbox','pika'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `\n---------------------------------\n\n★機種販売（〜時まで獲得数／累計）\n\nReno13A：${r('reno13a').n}件／${r('reno13a').t}件`;
+
+        document.getElementById('report_text').value = report;
+        document.getElementById('report_text').scrollIntoView({behavior: "smooth"});
+    }
+
+    function copyReport() {
+        const t = document.getElementById('report_text');
+        t.select();
+        t.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        alert("コピー完了！");
+    }
+</script>
+</body>
+</html>

@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>佐世保5番街店 定時報告ツール(終日SIM修正版)</title>
+    <title>佐世保5番街店 定時報告ツール(2枚目完全修正版)</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #f4f4f4; 
-            padding: 10px; 
-            font-size: 16px; 
-            color: #333; 
-            margin-bottom: 350px; 
-            line-height: 1.4;
+            background: #f4f4f4; padding: 10px; font-size: 16px; color: #333; margin-bottom: 350px; line-height: 1.4;
         }
         .section { background: white; padding: 15px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         h3 { border-left: 5px solid #bf0000; padding-left: 10px; margin: 0 0 12px 0; font-size: 16px; color: #bf0000; }
@@ -113,53 +108,60 @@
     function importFromReport() {
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
-        const lines = text.split('\n');
+        
+        // SIM累計の読込
         let simVal = 0;
         const targetLabels = ["終業時点", "16時時点", "13時時点"];
+        const lines = text.split('\n');
         for(let label of targetLabels) {
             const line = lines.find(l => l.includes(label));
             if(line) {
-                const m = line.match(/時点：\d+件(?:（[^）]+）|／(\d+)件)/);
+                const m = line.match(/時点[：:][ ]?\d+件(?:（[^）]+）|／(\d+)件)/) || line.match(/時点[：:][ ]?(\d+)件/);
                 if(m) {
-                    simVal = m[1] || line.match(/時点：(\d+)件/)[1];
+                    simVal = m[1];
                     if(simVal != 0) break;
                 }
             }
         }
-        document.getElementById('sim_13_input').value = simVal;
-        const parts = text.split("（内訳：２枚目）");
-        const text1 = parts[0];
-        const text2 = parts[1] || "";
+        document.getElementById('sim_13_input').value = parseInt(simVal) || 0;
+
+        // KPI・カード累計の読込（分割ロジックの改善）
+        // 「内訳：２枚目」より前のテキストと後のテキストに分ける
+        let text1 = text;
+        let text2 = "";
+        const splitKeyword = "（内訳：２枚目）";
+        if (text.includes(splitKeyword)) {
+            const parts = text.split(splitKeyword);
+            text1 = parts[0];
+            text2 = parts[1];
+        }
+
         kpiItems.forEach(item => {
-            let match;
-            if (item.p === '１枚目') match = text1.match(new RegExp("↪︎" + item.name + "：\\d+件[／/](\\d+)件"));
-            else if (item.p === '２枚目') match = text2.match(new RegExp("↪︎" + item.name + "：\\d+件[／/](\\d+)件"));
-            else match = text.match(new RegExp(item.name + "：\\d+件[／/](\\d+)件"));
+            let targetText = (item.p === '２枚目') ? text2 : text1;
+            if (!item.p) targetText = text; // 共通項目
+
+            // 正規表現をさらに強化：項目名、記号、件数、／、累計数字を確実に拾う
+            // 例：↪︎Ｓｖ：0件／5件 や ↪︎Ｓｖ : 0件／5件
+            const regex = new RegExp(item.name + "[ ]?[：:][ ]?\\d+件[／/](\\d+)件");
+            const match = targetText.match(regex);
+            
             const val = match ? parseInt(match[1]) : 0;
             Y_DATA[item.id] = val;
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計をセットしました！");
+        alert("累計のセットが完了しました！\nカード2枚目の累計も確認してください。");
     }
 
     function toggleReport(val) {
         document.getElementById('label_13').className = (val == 13) ? 'active-report' : '';
         document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
         document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
-        
         const historyBox = document.getElementById('sim_history_box');
         const sim16Row = document.getElementById('sim_16_row');
-        
-        if(val == 13) {
-            historyBox.style.display = 'none';
-        } else if(val == 16) {
-            historyBox.style.display = 'flex';
-            sim16Row.style.display = 'none';
-        } else {
-            historyBox.style.display = 'flex';
-            sim16Row.style.display = 'flex';
-        }
+        if(val == 13) { historyBox.style.display = 'none'; }
+        else if(val == 16) { historyBox.style.display = 'flex'; sim16Row.style.display = 'none'; }
+        else { historyBox.style.display = 'flex'; sim16Row.style.display = 'flex'; }
     }
 
     function changeSIM(v) {
@@ -189,7 +191,6 @@
         } else if(type == "16") {
             report += `13時時点：${s13}件（13時までの回線総販）\n16時時点：${sNow}件／${s13+sNow}件\n終業時点：0件／0件\n`;
         } else {
-            // 終業報告：13時(前日分)、16時(入力値)、終業(今回カウント)をすべて合算
             report += `13時時点：${s13}件（13時までの回線総販）\n`;
             report += `16時時点：${s16gain}件／${s13+s16gain}件\n`;
             report += `終業時点：${sNow}件／${s13+s16gain+sNow}件\n`;

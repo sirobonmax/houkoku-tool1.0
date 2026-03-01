@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>佐世保5番街店 定時報告ツール(新フォーマット対応版)</title>
+    <title>佐世保5番街店 定時報告ツール(計算機能追加版)</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -52,8 +52,12 @@
         <h3>SIM実績</h3>
         <div id="sim_history_box" class="sim-input-row" style="display:none;">
             <div class="sim-input-item">
-                <span style="font-size:14px;">13時時点の累計</span>
-                <input type="number" id="sim_13_input" value="0" class="total-input">
+                <span style="font-size:14px;">前日までのSIM累計</span>
+                <input type="number" id="sim_base_input" value="0" class="total-input">
+            </div>
+            <div id="sim_13_row" class="sim-input-item" style="display:none;">
+                <span style="font-size:14px;">13時までの獲得数</span>
+                <input type="number" id="sim_13_val" value="0" class="total-input">
             </div>
             <div id="sim_16_row" class="sim-input-item" style="display:none;">
                 <span style="font-size:14px;">16時までの獲得数</span>
@@ -85,15 +89,12 @@
 <script>
     let Y_DATA = {};
     const kpiItems = [
-        // KPI セクション
         { id: 'kakeho', name: '１５分カケホ' },
         { id: 'unext', name: 'U-NEXT' },
         { id: 'rpay', name: '楽天ペイ設定数' },
         { id: 'enq', name: 'アンケ回答数' },
-        // 通信 セクション
         { id: 'hikari', name: 'ひかり' },
         { id: 'turbo', name: 'Turbo' },
-        // カード セクション
         { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' },
         { id: 'c1_pk', name: 'Ｐｋ', p: '１枚目' },
         { id: 'c1_go', name: 'Ｇｏ', p: '１枚目' },
@@ -102,17 +103,14 @@
         { id: 'c2_pk', name: 'Ｐｋ', p: '２枚目' },
         { id: 'c2_go', name: 'Ｇｏ', p: '２枚目' },
         { id: 'c2_pr', name: 'Ｐｒ', p: '２枚目' },
-        // サービス セクション
         { id: 'saikyo', name: '最強保護' },
         { id: 'hosho', name: '交換保証' },
         { id: 'appcare', name: 'AppCare' },
         { id: 'mochikomi', name: '持込保証' },
         { id: 'rusuban', name: '留守番電話' },
-        // 3rdPP セクション
         { id: 'adguard', name: 'ADGuard' },
         { id: 'aosbox', name: 'AOSBOX' },
         { id: 'pika', name: 'ピカプロDX' },
-        // OPPO セクション
         { id: 'reno13a', name: 'Reno13A' },
         { id: 'reno11a', name: 'Reno11A' },
         { id: 'charger', name: 'SUPERVOOC充電器' }
@@ -129,21 +127,13 @@
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
-        // SIM累計の読込
         let simVal = 0;
-        const targetLabels = ["終業時点", "16時時点", "13時時点"];
-        const lines = text.split('\n');
-        for(let label of targetLabels) {
-            const line = lines.find(l => l.includes(label));
-            if(line) {
-                const m = line.match(/時点[：:][ ]?\d+件(?:（[^）]+）|／(\d+)件)/) || line.match(/時点[：:][ ]?(\d+)件/);
-                if(m) {
-                    simVal = m[1] || m[0].match(/\d+/);
-                    if(simVal != 0) break;
-                }
-            }
+        const line = text.split('\n').find(l => l.includes("SIMトータル"));
+        if(line) {
+            const m = line.match(/SIMトータル[：:][ ]?(\d+)件/);
+            if(m) simVal = m[1];
         }
-        document.getElementById('sim_13_input').value = parseInt(simVal) || 0;
+        document.getElementById('sim_base_input').value = parseInt(simVal) || 0;
 
         let text1 = text;
         let text2 = "";
@@ -157,10 +147,8 @@
         kpiItems.forEach(item => {
             let targetText = (item.p === '２枚目') ? text2 : text1;
             if (!item.p) targetText = text; 
-
             const regex = new RegExp(item.name + "[ ]?[：:][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
-            
             const val = match ? parseInt(match[1]) : 0;
             Y_DATA[item.id] = val;
             document.getElementById(item.id + '_total').value = val;
@@ -173,11 +161,9 @@
         document.getElementById('label_13').className = (val == 13) ? 'active-report' : '';
         document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
         document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
-        const historyBox = document.getElementById('sim_history_box');
-        const sim16Row = document.getElementById('sim_16_row');
-        if(val == 13) { historyBox.style.display = 'none'; }
-        else if(val == 16) { historyBox.style.display = 'flex'; sim16Row.style.display = 'none'; }
-        else { historyBox.style.display = 'flex'; sim16Row.style.display = 'flex'; }
+        document.getElementById('sim_history_box').style.display = (val == 13) ? 'none' : 'flex';
+        document.getElementById('sim_13_row').style.display = (val == 13) ? 'none' : 'flex';
+        document.getElementById('sim_16_row').style.display = (val == 'last') ? 'flex' : 'none';
     }
 
     function changeSIM(v) {
@@ -196,60 +182,46 @@
 
     function generateReport() {
         const type = document.querySelector('input[name="rtype"]:checked').value;
-        const s13 = parseInt(document.getElementById('sim_13_input').value) || 0;
-        const s16gain = parseInt(document.getElementById('sim_16_gain').value) || 0;
-        const sNow = parseInt(document.getElementById('sim_now').innerText) || 0;
+        const sBase = parseInt(document.getElementById('sim_base_input').value) || 0;
+        const s13 = (type == "13") ? parseInt(document.getElementById('sim_now').innerText) : parseInt(document.getElementById('sim_13_val').value);
+        const s16 = (type == "16") ? parseInt(document.getElementById('sim_now').innerText) : (type == "last" ? parseInt(document.getElementById('sim_16_gain').value) : 0);
+        const sLast = (type == "last") ? parseInt(document.getElementById('sim_now').innerText) : 0;
+        
+        const simTotal = sBase + s13 + s16 + sLast;
         const r = (id) => ({ n: parseInt(document.getElementById(id+'_now').innerText), t: parseInt(document.getElementById(id+'_total').value) });
+
+        const getRate = (val, base) => (base > 0) ? Math.floor((val / base) * 100) : 0;
 
         let report = `【定時報告／佐世保５番街店】\n\n★ＳＩＭ（〜時まで獲得数／累計）\n\n`;
         if(type == "13") {
-            report += `13時時点：${sNow}件\n16時時点：0件／0件\n終業時点：0件／0件\n`;
+            report += `13時時点：${s13}件\n16時時点：0件／0件\n終業時点：0件／0件\n`;
         } else if(type == "16") {
-            report += `13時時点：${s13}件\n16時時点：${sNow}件／${s13+sNow}件\n終業時点：0件／0件\n`;
+            report += `13時時点：${s13}件\n16時時点：${s16}件／${s13+s16}件\n終業時点：0件／0件\n`;
         } else {
-            report += `13時時点：${s13}件\n`;
-            report += `16時時点：${s16gain}件／${s13+s16gain}件\n`;
-            report += `終業時点：${sNow}件／${s13+s16gain+sNow}件\n`;
+            report += `13時時点：${s13}件\n16時時点：${s16}件／${s13+s16}件\n終業時点：${sLast}件／${s13+s16+sLast}件\n`;
         }
-
-        report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
+        report += `SIMトータル：${simTotal}件\n---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
         
-        // KPI 4種
-        ['kakeho', 'unext', 'rpay', 'enq'].forEach(id => {
-            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
-        });
+        ['kakeho', 'unext', 'rpay'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件　　${getRate(r('enq').t, simTotal)}％\n\n\n`;
+
+        ['hikari', 'turbo'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
 
-        // 通信 2種
-        ['hikari', 'turbo'].forEach(id => {
-            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
-        });
-        report += `\n\n`;
-
-        // カード
         const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
-        const cardN = cids.reduce((s, id) => s + r(id).n, 0);
-        const cardT = cids.reduce((s, id) => s + r(id).t, 0);
-        report += `カード：${cardN}件／${cardT}件\n（内訳：１枚目）\n`;
+        report += `カード：${cids.reduce((s, id) => s + r(id).n, 0)}件／${cids.reduce((s, id) => s + r(id).t, 0)}件\n（内訳：１枚目）\n`;
         ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n（内訳：２枚目）\n`;
         ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name} : ${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
 
-        // サービス
-        ['saikyo', 'hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => {
-            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
-        });
+        report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件　　${getRate(r('saikyo').t, simTotal)}％\n`;
+        ['hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
 
         report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
-        ['adguard', 'aosbox', 'pika'].forEach(id => {
-            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
-        });
-
+        ['adguard', 'aosbox', 'pika'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
-        ['reno13a', 'reno11a', 'charger'].forEach(id => {
-            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
-        });
+        ['reno13a', 'reno11a', 'charger'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
 
         document.getElementById('report_text').value = report;
         document.getElementById('report_text').scrollIntoView({behavior: "smooth"});

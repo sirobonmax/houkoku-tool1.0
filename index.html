@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>佐世保5番街店 定時報告ツール(2枚目完全修正版)</title>
+    <title>佐世保5番街店 定時報告ツール(新フォーマット対応版)</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -85,17 +85,37 @@
 <script>
     let Y_DATA = {};
     const kpiItems = [
-        { id: 'rpay', name: '楽天ペイ設定数' }, { id: 'enq', name: 'アンケ回答数' },
-        { id: 'unext', name: 'U-NEXT' }, { id: 'hikari', name: 'ひかり' }, { id: 'turbo', name: 'Turbo' },
-        { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' }, { id: 'c1_pk', name: 'Ｐｋ', p: '１枚目' },
-        { id: 'c1_go', name: 'Ｇｏ', p: '１枚目' }, { id: 'c1_pr', name: 'Ｐｒ', p: '１枚目' },
-        { id: 'c2_sv', name: 'Ｓｖ', p: '２枚目' }, { id: 'c2_pk', name: 'Ｐｋ', p: '２枚目' },
-        { id: 'c2_go', name: 'Ｇｏ', p: '２枚目' }, { id: 'c2_pr', name: 'Ｐｒ', p: '２枚目' },
-        { id: 'kakeho', name: '１５分カケホ' }, { id: 'saikyo', name: '最強保護' },
-        { id: 'hosho', name: '交換保証' }, { id: 'appcare', name: 'AppCare' },
-        { id: 'mochikomi', name: '持込保証' }, { id: 'rusuban', name: '留守番電話' },
-        { id: 'adguard', name: 'ADGuard' }, { id: 'aosbox', name: 'AOSBOX' },
-        { id: 'pika', name: 'ピカプロDX' }, { id: 'reno13a', name: 'Reno13A' }
+        // KPI セクション
+        { id: 'kakeho', name: '１５分カケホ' },
+        { id: 'unext', name: 'U-NEXT' },
+        { id: 'rpay', name: '楽天ペイ設定数' },
+        { id: 'enq', name: 'アンケ回答数' },
+        // 通信 セクション
+        { id: 'hikari', name: 'ひかり' },
+        { id: 'turbo', name: 'Turbo' },
+        // カード セクション
+        { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' },
+        { id: 'c1_pk', name: 'Ｐｋ', p: '１枚目' },
+        { id: 'c1_go', name: 'Ｇｏ', p: '１枚目' },
+        { id: 'c1_pr', name: 'Ｐｒ', p: '１枚目' },
+        { id: 'c2_sv', name: 'Ｓｖ', p: '２枚目' },
+        { id: 'c2_pk', name: 'Ｐｋ', p: '２枚目' },
+        { id: 'c2_go', name: 'Ｇｏ', p: '２枚目' },
+        { id: 'c2_pr', name: 'Ｐｒ', p: '２枚目' },
+        // サービス セクション
+        { id: 'saikyo', name: '最強保護' },
+        { id: 'hosho', name: '交換保証' },
+        { id: 'appcare', name: 'AppCare' },
+        { id: 'mochikomi', name: '持込保証' },
+        { id: 'rusuban', name: '留守番電話' },
+        // 3rdPP セクション
+        { id: 'adguard', name: 'ADGuard' },
+        { id: 'aosbox', name: 'AOSBOX' },
+        { id: 'pika', name: 'ピカプロDX' },
+        // OPPO セクション
+        { id: 'reno13a', name: 'Reno13A' },
+        { id: 'reno11a', name: 'Reno11A' },
+        { id: 'charger', name: 'SUPERVOOC充電器' }
     ];
 
     const container = document.getElementById('kpi-container');
@@ -118,15 +138,13 @@
             if(line) {
                 const m = line.match(/時点[：:][ ]?\d+件(?:（[^）]+）|／(\d+)件)/) || line.match(/時点[：:][ ]?(\d+)件/);
                 if(m) {
-                    simVal = m[1];
+                    simVal = m[1] || m[0].match(/\d+/);
                     if(simVal != 0) break;
                 }
             }
         }
         document.getElementById('sim_13_input').value = parseInt(simVal) || 0;
 
-        // KPI・カード累計の読込（分割ロジックの改善）
-        // 「内訳：２枚目」より前のテキストと後のテキストに分ける
         let text1 = text;
         let text2 = "";
         const splitKeyword = "（内訳：２枚目）";
@@ -138,10 +156,8 @@
 
         kpiItems.forEach(item => {
             let targetText = (item.p === '２枚目') ? text2 : text1;
-            if (!item.p) targetText = text; // 共通項目
+            if (!item.p) targetText = text; 
 
-            // 正規表現をさらに強化：項目名、記号、件数、／、累計数字を確実に拾う
-            // 例：↪︎Ｓｖ：0件／5件 や ↪︎Ｓｖ : 0件／5件
             const regex = new RegExp(item.name + "[ ]?[：:][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
             
@@ -150,7 +166,7 @@
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計のセットが完了しました！\nカード2枚目の累計も確認してください。");
+        alert("累計のセットが完了しました！");
     }
 
     function toggleReport(val) {
@@ -187,19 +203,30 @@
 
         let report = `【定時報告／佐世保５番街店】\n\n★ＳＩＭ（〜時まで獲得数／累計）\n\n`;
         if(type == "13") {
-            report += `13時時点：${sNow}件（13時までの回線総販）\n16時時点：0件／0件\n終業時点：0件／0件\n`;
+            report += `13時時点：${sNow}件\n16時時点：0件／0件\n終業時点：0件／0件\n`;
         } else if(type == "16") {
-            report += `13時時点：${s13}件（13時までの回線総販）\n16時時点：${sNow}件／${s13+sNow}件\n終業時点：0件／0件\n`;
+            report += `13時時点：${s13}件\n16時時点：${sNow}件／${s13+sNow}件\n終業時点：0件／0件\n`;
         } else {
-            report += `13時時点：${s13}件（13時までの回線総販）\n`;
+            report += `13時時点：${s13}件\n`;
             report += `16時時点：${s16gain}件／${s13+s16gain}件\n`;
             report += `終業時点：${sNow}件／${s13+s16gain+sNow}件\n`;
         }
 
         report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
-        ['rpay', 'enq', 'unext', 'hikari', 'turbo'].forEach(id => {
+        
+        // KPI 4種
+        ['kakeho', 'unext', 'rpay', 'enq'].forEach(id => {
             report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
         });
+        report += `\n\n`;
+
+        // 通信 2種
+        ['hikari', 'turbo'].forEach(id => {
+            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
+        });
+        report += `\n\n`;
+
+        // カード
         const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
         const cardN = cids.reduce((s, id) => s + r(id).n, 0);
         const cardT = cids.reduce((s, id) => s + r(id).t, 0);
@@ -207,12 +234,22 @@
         ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n（内訳：２枚目）\n`;
         ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name} : ${r(id).n}件／${r(id).t}件\n`);
-        const others = ['kakeho','saikyo','hosho','appcare','mochikomi','rusuban'];
-        report += `\n`;
-        others.forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `\n\n`;
+
+        // サービス
+        ['saikyo', 'hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => {
+            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
+        });
+
         report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
-        ['adguard','aosbox','pika'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        report += `\n---------------------------------\n\n★機種販売（〜時まで獲得数／累計）\n\nReno13A：${r('reno13a').n}件／${r('reno13a').t}件`;
+        ['adguard', 'aosbox', 'pika'].forEach(id => {
+            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
+        });
+
+        report += `\n---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
+        ['reno13a', 'reno11a', 'charger'].forEach(id => {
+            report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`;
+        });
 
         document.getElementById('report_text').value = report;
         document.getElementById('report_text').scrollIntoView({behavior: "smooth"});

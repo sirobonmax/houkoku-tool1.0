@@ -182,15 +182,11 @@
 
     function generateReport() {
         const type = document.querySelector('input[name="rtype"]:checked').value;
-        const sBase = parseInt(document.getElementById('sim_base_input').value) || 0;
         const s13 = (type == "13") ? parseInt(document.getElementById('sim_now').innerText) : parseInt(document.getElementById('sim_13_val').value);
         const s16 = (type == "16") ? parseInt(document.getElementById('sim_now').innerText) : (type == "last" ? parseInt(document.getElementById('sim_16_gain').value) : 0);
         const sLast = (type == "last") ? parseInt(document.getElementById('sim_now').innerText) : 0;
         
-        const simTotal = sBase + s13 + s16 + sLast;
         const r = (id) => ({ n: parseInt(document.getElementById(id+'_now').innerText), t: parseInt(document.getElementById(id+'_total').value) });
-
-        const getRate = (val, base) => (base > 0) ? Math.floor((val / base) * 100) : 0;
 
         let report = `【定時報告／佐世保５番街店】\n\n★ＳＩＭ（〜時まで獲得数／累計）\n\n`;
         if(type == "13") {
@@ -200,10 +196,10 @@
         } else {
             report += `13時時点：${s13}件\n16時時点：${s16}件／${s13+s16}件\n終業時点：${sLast}件／${s13+s16+sLast}件\n`;
         }
-        report += `SIMトータル：${simTotal}件\n---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
+        report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
         
         ['kakeho', 'unext', 'rpay'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件　　${getRate(r('enq').t, simTotal)}％\n\n\n`;
+        report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件\n\n\n`;
 
         ['hikari', 'turbo'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
@@ -215,7 +211,7 @@
         ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name} : ${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
 
-        report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件　　${getRate(r('saikyo').t, simTotal)}％\n`;
+        report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;
         ['hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
 
         report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;

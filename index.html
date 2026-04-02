@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>佐世保5番街店 定時報告ツール(計算機能追加版)</title>
+    <title>佐世保5番街店 定時報告ツール</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -51,17 +51,13 @@
     <div class="section">
         <h3>SIM実績</h3>
         <div id="sim_history_box" class="sim-input-row" style="display:none;">
-            <div class="sim-input-item">
-                <span style="font-size:14px;">前日までのSIM累計</span>
-                <input type="number" id="sim_base_input" value="0" class="total-input">
-            </div>
             <div id="sim_13_row" class="sim-input-item" style="display:none;">
-                <span style="font-size:14px;">13時までの獲得数</span>
-                <input type="number" id="sim_13_val" value="0" class="total-input">
+                <span style="font-size:14px;">13時時点の獲得数</span>
+                <input type="number" id="sim_13_val" value="0" class="total-input" onchange="saveSIMData()">
             </div>
             <div id="sim_16_row" class="sim-input-item" style="display:none;">
-                <span style="font-size:14px;">16時までの獲得数</span>
-                <input type="number" id="sim_16_gain" value="0" class="total-input">
+                <span style="font-size:14px;">16時時点の獲得数</span>
+                <input type="number" id="sim_16_gain" value="0" class="total-input" onchange="saveSIMData()">
             </div>
         </div>
         <div class="item">
@@ -88,6 +84,8 @@
 
 <script>
     let Y_DATA = {};
+    let SAVED_SIM = { s13: 0, s16: 0 }; // 過去の報告数保持用
+
     const kpiItems = [
         { id: 'kakeho', name: '１５分カケホ' },
         { id: 'unext', name: 'U-NEXT' },
@@ -127,28 +125,9 @@
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
-        let simVal = 0;
-        const line = text.split('\n').find(l => l.includes("SIMトータル"));
-        if(line) {
-            const m = line.match(/SIMトータル[：:][ ]?(\d+)件/);
-            if(m) simVal = m[1];
-        }
-        document.getElementById('sim_base_input').value = parseInt(simVal) || 0;
-
-        let text1 = text;
-        let text2 = "";
-        const splitKeyword = "（内訳：２枚目）";
-        if (text.includes(splitKeyword)) {
-            const parts = text.split(splitKeyword);
-            text1 = parts[0];
-            text2 = parts[1];
-        }
-
         kpiItems.forEach(item => {
-            let targetText = (item.p === '２枚目') ? text2 : text1;
-            if (!item.p) targetText = text; 
             const regex = new RegExp(item.name + "[ ]?[：:][ ]?\\d+件[／/](\\d+)件");
-            const match = targetText.match(regex);
+            const match = text.match(regex);
             const val = match ? parseInt(match[1]) : 0;
             Y_DATA[item.id] = val;
             document.getElementById(item.id + '_total').value = val;
@@ -161,9 +140,19 @@
         document.getElementById('label_13').className = (val == 13) ? 'active-report' : '';
         document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
         document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
+        
+        // SIM入力行の制御
         document.getElementById('sim_history_box').style.display = (val == 13) ? 'none' : 'flex';
-        document.getElementById('sim_13_row').style.display = (val == 13) ? 'none' : 'flex';
+        document.getElementById('sim_13_row').style.display = (val == 16 || val == 'last') ? 'flex' : 'none';
         document.getElementById('sim_16_row').style.display = (val == 'last') ? 'flex' : 'none';
+        
+        // 今回分の数値をリセット（任意ですが混乱を防ぐため）
+        document.getElementById('sim_now').innerText = "0";
+    }
+
+    function saveSIMData() {
+        SAVED_SIM.s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
+        SAVED_SIM.s16 = parseInt(document.getElementById('sim_16_gain').value) || 0;
     }
 
     function changeSIM(v) {
@@ -182,13 +171,29 @@
 
     function generateReport() {
         const type = document.querySelector('input[name="rtype"]:checked').value;
-        const s13 = (type == "13") ? parseInt(document.getElementById('sim_now').innerText) : parseInt(document.getElementById('sim_13_val').value);
-        const s16 = (type == "16") ? parseInt(document.getElementById('sim_now').innerText) : (type == "last" ? parseInt(document.getElementById('sim_16_gain').value) : 0);
-        const sLast = (type == "last") ? parseInt(document.getElementById('sim_now').innerText) : 0;
+        const currentNow = parseInt(document.getElementById('sim_now').innerText);
+        
+        let s13 = 0, s16 = 0, sLast = 0;
+
+        if (type == "13") {
+            s13 = currentNow;
+            // 13時報告時にその値を保存しておく（次の16時報告の初期値用）
+            document.getElementById('sim_13_val').value = s13;
+        } else if (type == "16") {
+            s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
+            s16 = currentNow;
+            // 16時報告時の値を保存
+            document.getElementById('sim_16_gain').value = s16;
+        } else if (type == "last") {
+            s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
+            s16 = parseInt(document.getElementById('sim_16_gain').value) || 0;
+            sLast = currentNow;
+        }
         
         const r = (id) => ({ n: parseInt(document.getElementById(id+'_now').innerText), t: parseInt(document.getElementById(id+'_total').value) });
 
         let report = `【定時報告／佐世保５番街店】\n\n★ＳＩＭ（〜時まで獲得数／累計）\n\n`;
+        
         if(type == "13") {
             report += `13時時点：${s13}件\n16時時点：0件／0件\n終業時点：0件／0件\n`;
         } else if(type == "16") {
@@ -196,6 +201,7 @@
         } else {
             report += `13時時点：${s13}件\n16時時点：${s16}件／${s13+s16}件\n終業時点：${sLast}件／${s13+s16+sLast}件\n`;
         }
+        
         report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
         
         ['kakeho', 'unext', 'rpay'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);

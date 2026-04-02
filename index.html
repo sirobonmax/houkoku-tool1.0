@@ -17,7 +17,7 @@
         .counter-group { display: flex; align-items: center; gap: 12px; }
         button { min-width: 48px; height: 48px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; background: #eee; border-radius: 8px; font-size: 20px; touch-action: manipulation; }
         .count-val { min-width: 35px; text-align: center; font-weight: bold; font-size: 22px; color: #bf0000; }
-        .total-input { width: 70px; height: 40px; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fffde7; -webkit-appearance: none; }
+        .total-input { width: 75px; height: 40px; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fffde7; }
         #preview-area { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.15); z-index: 100; border-top: 4px solid #bf0000; border-radius: 15px 15px 0 0; }
         textarea { width: 100%; height: 100px; margin-top: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; padding: 8px; box-sizing: border-box; background: #f9f9f9; }
         .btn-main { width: 100%; height: 55px; background: #bf0000; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; }
@@ -27,7 +27,7 @@
         .report-type input { display: none; }
         .active-report { background: #ffebeb !important; border-color: #bf0000 !important; font-weight: bold; color: #bf0000; }
         .import-btn { width: 100%; height: 48px; background: #1976d2; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; font-size: 15px; }
-        .sim-input-row { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .sim-input-row { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; background: #fffde7; padding: 10px; border-radius: 8px; }
         .sim-input-item { display: flex; align-items: center; justify-content: space-between; }
     </style>
 </head>
@@ -52,16 +52,16 @@
         <h3>SIM実績</h3>
         <div id="sim_history_box" class="sim-input-row" style="display:none;">
             <div id="sim_13_row" class="sim-input-item" style="display:none;">
-                <span style="font-size:14px;">13時時点の獲得数</span>
-                <input type="number" id="sim_13_val" value="0" class="total-input" onchange="saveSIMData()">
+                <span style="font-size:13px; font-weight:bold;">13時報告の数値:</span>
+                <input type="number" id="sim_13_val" value="0" class="total-input">
             </div>
             <div id="sim_16_row" class="sim-input-item" style="display:none;">
-                <span style="font-size:14px;">16時時点の獲得数</span>
-                <input type="number" id="sim_16_gain" value="0" class="total-input" onchange="saveSIMData()">
+                <span style="font-size:13px; font-weight:bold;">16時報告の数値:</span>
+                <input type="number" id="sim_16_gain" value="0" class="total-input">
             </div>
         </div>
         <div class="item">
-            <span class="item-label" id="sim_label">獲得数（今回分）</span>
+            <span class="item-label" id="sim_label">今回（その時間帯）の獲得数</span>
             <div class="controls">
                 <div class="counter-group">
                     <button onclick="changeSIM(-1)">-</button>
@@ -84,7 +84,6 @@
 
 <script>
     let Y_DATA = {};
-    let SAVED_SIM = { s13: 0, s16: 0 }; // 過去の報告数保持用
 
     const kpiItems = [
         { id: 'kakeho', name: '１５分カケホ' },
@@ -141,18 +140,13 @@
         document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
         document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
         
-        // SIM入力行の制御
+        // 入力エリアの表示切り替え
         document.getElementById('sim_history_box').style.display = (val == 13) ? 'none' : 'flex';
         document.getElementById('sim_13_row').style.display = (val == 16 || val == 'last') ? 'flex' : 'none';
         document.getElementById('sim_16_row').style.display = (val == 'last') ? 'flex' : 'none';
-        
-        // 今回分の数値をリセット（任意ですが混乱を防ぐため）
-        document.getElementById('sim_now').innerText = "0";
-    }
 
-    function saveSIMData() {
-        SAVED_SIM.s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
-        SAVED_SIM.s16 = parseInt(document.getElementById('sim_16_gain').value) || 0;
+        // 今回入力分をリセット
+        document.getElementById('sim_now').innerText = "0";
     }
 
     function changeSIM(v) {
@@ -171,23 +165,20 @@
 
     function generateReport() {
         const type = document.querySelector('input[name="rtype"]:checked').value;
-        const currentNow = parseInt(document.getElementById('sim_now').innerText);
+        const currentInput = parseInt(document.getElementById('sim_now').innerText);
         
-        let s13 = 0, s16 = 0, sLast = 0;
+        let s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
+        let s16 = parseInt(document.getElementById('sim_16_gain').value) || 0;
+        let sLast = 0;
 
         if (type == "13") {
-            s13 = currentNow;
-            // 13時報告時にその値を保存しておく（次の16時報告の初期値用）
-            document.getElementById('sim_13_val').value = s13;
+            s13 = currentInput;
+            document.getElementById('sim_13_val').value = s13; // 13時の欄に自動転記
         } else if (type == "16") {
-            s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
-            s16 = currentNow;
-            // 16時報告時の値を保存
-            document.getElementById('sim_16_gain').value = s16;
+            s16 = currentInput;
+            document.getElementById('sim_16_gain').value = s16; // 16時の欄に自動転記
         } else if (type == "last") {
-            s13 = parseInt(document.getElementById('sim_13_val').value) || 0;
-            s16 = parseInt(document.getElementById('sim_16_gain').value) || 0;
-            sLast = currentNow;
+            sLast = currentInput;
         }
         
         const r = (id) => ({ n: parseInt(document.getElementById(id+'_now').innerText), t: parseInt(document.getElementById(id+'_total').value) });

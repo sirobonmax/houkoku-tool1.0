@@ -8,6 +8,15 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background: #f4f4f4; padding: 10px; font-size: 16px; color: #333; margin-bottom: 350px; line-height: 1.4;
+            position: relative;
+        }
+        /* 更新日時表示用スタイル */
+        .last-update {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #888;
         }
         .section { background: white; padding: 15px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         h3 { border-left: 5px solid #bf0000; padding-left: 10px; margin: 0 0 12px 0; font-size: 16px; color: #bf0000; }
@@ -32,6 +41,8 @@
     </style>
 </head>
 <body>
+
+    <div class="last-update">Update: 2026/04/02 17:25</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -140,12 +151,10 @@
         document.getElementById('label_16').className = (val == 16) ? 'active-report' : '';
         document.getElementById('label_last').className = (val == 'last') ? 'active-report' : '';
         
-        // 入力エリアの表示切り替え
         document.getElementById('sim_history_box').style.display = (val == 13) ? 'none' : 'flex';
         document.getElementById('sim_13_row').style.display = (val == 16 || val == 'last') ? 'flex' : 'none';
         document.getElementById('sim_16_row').style.display = (val == 'last') ? 'flex' : 'none';
 
-        // 今回入力分をリセット
         document.getElementById('sim_now').innerText = "0";
     }
 
@@ -173,10 +182,10 @@
 
         if (type == "13") {
             s13 = currentInput;
-            document.getElementById('sim_13_val').value = s13; // 13時の欄に自動転記
+            document.getElementById('sim_13_val').value = s13; 
         } else if (type == "16") {
             s16 = currentInput;
-            document.getElementById('sim_16_gain').value = s16; // 16時の欄に自動転記
+            document.getElementById('sim_16_gain').value = s16;
         } else if (type == "last") {
             sLast = currentInput;
         }

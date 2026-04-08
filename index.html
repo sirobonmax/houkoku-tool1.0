@@ -10,7 +10,6 @@
             background: #f4f4f4; padding: 10px; font-size: 16px; color: #333; margin-bottom: 350px; line-height: 1.4;
             position: relative;
         }
-        /* 更新日時表示用スタイル */
         .last-update {
             position: absolute;
             top: 5px;
@@ -42,7 +41,7 @@
 </head>
 <body>
 
-    <div class="last-update">Update: 2026/04/02 17:25</div>
+    <div class="last-update">Update: 2026/04/08 16:30</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -131,19 +130,32 @@
         container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
     });
 
+    // --- 修正箇所：インポート機能の強化 ---
     function importFromReport() {
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
+        // テキストを「1枚目エリア」と「2枚目エリア」に分割して検索しやすくする
+        const parts = text.split("（内訳：２枚目）");
+        const area1 = parts[0];
+        const area2 = parts[1] || "";
+
         kpiItems.forEach(item => {
-            const regex = new RegExp(item.name + "[ ]?[：:][ ]?\\d+件[／/](\\d+)件");
-            const match = text.match(regex);
+            let targetText = text;
+            // 1枚目・2枚目の指定がある場合は検索範囲を限定する
+            if (item.p === '１枚目') targetText = area1;
+            if (item.p === '２枚目') targetText = area2;
+
+            // 項目名＋数値を取得する正規表現
+            const regex = new RegExp(item.name + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
+            const match = targetText.match(regex);
+            
             const val = match ? parseInt(match[1]) : 0;
             Y_DATA[item.id] = val;
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計のセットが完了しました！");
+        alert("累計のセットが完了しました！（1枚目/2枚目を区別して読み込みました）");
     }
 
     function toggleReport(val) {
@@ -214,7 +226,7 @@
         report += `カード：${cids.reduce((s, id) => s + r(id).n, 0)}件／${cids.reduce((s, id) => s + r(id).t, 0)}件\n（内訳：１枚目）\n`;
         ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n（内訳：２枚目）\n`;
-        ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name} : ${r(id).n}件／${r(id).t}件\n`);
+        ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
 
         report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;

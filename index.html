@@ -130,23 +130,19 @@
         container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
     });
 
-    // --- 修正箇所：インポート機能の強化 ---
     function importFromReport() {
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
-        // テキストを「1枚目エリア」と「2枚目エリア」に分割して検索しやすくする
         const parts = text.split("（内訳：２枚目）");
         const area1 = parts[0];
         const area2 = parts[1] || "";
 
         kpiItems.forEach(item => {
             let targetText = text;
-            // 1枚目・2枚目の指定がある場合は検索範囲を限定する
             if (item.p === '１枚目') targetText = area1;
             if (item.p === '２枚目') targetText = area2;
 
-            // 項目名＋数値を取得する正規表現
             const regex = new RegExp(item.name + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
             
@@ -216,24 +212,36 @@
         
         report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
         
-        ['kakeho', 'unext', 'rpay'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件\n\n\n`;
+        // 15分カケホ、最強保護、U-NEXT
+        report += `${kpiItems.find(k=>k.id==='kakeho').name}：${r('kakeho').n}件／${r('kakeho').t}件\n`;
+        report += `${kpiItems.find(k=>k.id==='saikyo').name}：${r('saikyo').n}件／${r('saikyo').t}件\n`;
+        report += `${kpiItems.find(k=>k.id==='unext').name}：${r('unext').n}件／${r('unext').t}件\n\n\n`;
 
+        // ひかり、Turbo
         ['hikari', 'turbo'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n\n`;
 
+        // カード全体と内訳
         const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
         report += `カード：${cids.reduce((s, id) => s + r(id).n, 0)}件／${cids.reduce((s, id) => s + r(id).t, 0)}件\n（内訳：１枚目）\n`;
         ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n（内訳：２枚目）\n`;
         ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        report += `\n\n`;
+        report += `\n`;
 
-        report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;
+        // 保証関係・その他
         ['hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += `\n`;
+        
+        // 楽天ペイ、アンケ
+        report += `${kpiItems.find(k=>k.id==='rpay').name}：${r('rpay').n}件／${r('rpay').t}件\n`;
+        report += `${kpiItems.find(k=>k.id==='enq').name}：${r('enq').n}件／${r('enq').t}件\n`;
 
+        // 3rdPP
         report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
-        ['adguard', 'aosbox', 'pika'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        ['adguard', 'pika', 'aosbox'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        
+        // OPPO
         report += `\n---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
         ['reno13a', 'reno11a', 'charger'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
 

@@ -46,7 +46,6 @@
 </head>
 <body>
 
-    <!-- 今日の日時に変更しました -->
     <div class="last-update">Update: 2026/06/01 13:15</div>
 
     <div class="section" style="background: #e3f2fd;">
@@ -103,9 +102,9 @@
 
     const kpiItems = [
         { id: 'kakeho', name: '１５分カケホ' },
+        { id: 'saikyo', name: '最強保護' },
         { id: 'unext', name: 'U-NEXT' },
-        { id: 'rpay', name: '楽天ペイ設定数' },
-        { id: 'enq', name: 'アンケ回答数' },
+        { id: 'unext_change', name: 'U-NEXT', suffix: ' (プラン変更)' },
         { id: 'hikari', name: 'ひかり' },
         { id: 'turbo', name: 'Turbo' },
         { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' },
@@ -116,14 +115,15 @@
         { id: 'c2_pk', name: 'Ｐｋ', p: '２枚目' },
         { id: 'c2_go', name: 'Ｇｏ', p: '２枚目' },
         { id: 'c2_pr', name: 'Ｐｒ', p: '２枚目' },
-        { id: 'saikyo', name: '最強保護' },
         { id: 'hosho', name: '交換保証' },
         { id: 'appcare', name: 'AppCare' },
         { id: 'mochikomi', name: '持込保証' },
         { id: 'rusuban', name: '留守番電話' },
+        { id: 'rpay', name: '楽天ペイ設定数' },
+        { id: 'enq', name: 'アンケ回答数' },
         { id: 'adguard', name: 'ADGuard' },
-        { id: 'aosbox', name: 'AOSBOX' },
         { id: 'pika', name: 'ピカプロDX' },
+        { id: 'aosbox', name: 'AOSBOX' },
         { id: 'reno13a', name: 'Reno13A' },
         { id: 'reno11a', name: 'Reno11A' },
         { id: 'charger', name: 'SUPERVOOC充電器' }
@@ -132,7 +132,9 @@
     const container = document.getElementById('kpi-container');
     kpiItems.forEach(item => {
         Y_DATA[item.id] = 0;
-        const label = item.p ? `(${item.p}) ${item.name}` : item.name;
+        let label = item.p ? `(${item.p}) ${item.name}` : item.name;
+        if (item.suffix) label += item.suffix;
+        
         container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
     });
 
@@ -149,7 +151,13 @@
             if (item.p === '１枚目') targetText = area1;
             if (item.p === '２枚目') targetText = area2;
 
-            const regex = new RegExp(item.name + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
+            let regexStr = item.name;
+            if (item.suffix) {
+                // 特殊文字の退避（カッコなど）
+                const escapedSuffix = item.suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                regexStr += "[ ]?" + escapedSuffix;
+            }
+            const regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
             
             const val = match ? parseInt(match[1]) : 0;
@@ -218,12 +226,13 @@
         
         report += `---------------------------------\n\n★ＫＰＩ（〜時まで獲得数／累計）\n\n`;
         
-        report += `${kpiItems.find(k=>k.id==='kakeho').name}：${r('kakeho').n}件／${r('kakeho').t}件\n`;
-        report += `${kpiItems.find(k=>k.id==='saikyo').name}：${r('saikyo').n}件／${r('saikyo').t}件\n`;
-        report += `${kpiItems.find(k=>k.id==='unext').name}：${r('unext').n}件／${r('unext').t}件\n\n\n`;
+        report += `１５分カケホ：${r('kakeho').n}件／${r('kakeho').t}件\n`;
+        report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;
+        report += `U-NEXT：${r('unext').n}件／${r('unext').t}件\n`;
+        report += `U-NEXT：${r('unext_change').n}件／${r('unext_change').t}件 (プラン変更)\n\n`;
 
-        ['hikari', 'turbo'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        report += `\n\n`;
+        report += `ひかり：${r('hikari').n}件／${r('hikari').t}件\n`;
+        report += `Turbo：${r('turbo').n}件／${r('turbo').t}件\n\n\n`;
 
         const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
         report += `カード：${cids.reduce((s, id) => s + r(id).n, 0)}件／${cids.reduce((s, id) => s + r(id).t, 0)}件\n（内訳：１枚目）\n`;
@@ -235,8 +244,8 @@
         ['hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
         report += `\n`;
         
-        report += `${kpiItems.find(k=>k.id==='rpay').name}：${r('rpay').n}件／${r('rpay').t}件\n`;
-        report += `${kpiItems.find(k=>k.id==='enq').name}：${r('enq').n}件／${r('enq').t}件\n`;
+        report += `楽天ペイ設定数：${r('rpay').n}件／${r('rpay').t}件\n`;
+        report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件\n`;
 
         report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
         ['adguard', 'pika', 'aosbox'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);

@@ -46,7 +46,7 @@
 </head>
 <body>
 
-    <div class="last-update">Update: 2026/07/03 16:46</div>
+    <div class="last-update">Update: 2026/07/03 16:52</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -142,23 +142,25 @@
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
-        const parts = text.split("（内訳：２枚目）");
-        const area1 = parts[0];
-        const area2 = parts[1] || "";
+        // カード内訳の読み分け用分割処理
+        const parts1 = text.split("（内訳：１枚目）");
+        const parts2 = text.split("（内訳：２枚目）");
+        
+        const area1 = parts1[1] ? parts1[1].split("（内訳：２枚目）")[0] : "";
+        const area2 = parts2[1] ? parts2[1].split("交換保証")[0] : "";
 
         kpiItems.forEach(item => {
-            let targetText = text;
+            let targetText = text; // 基本はテキスト全体から探す
             if (item.p === '１枚目') targetText = area1;
             if (item.p === '２枚目') targetText = area2;
 
             let regexStr = item.name;
             if (item.suffix) {
-                // スペースやカッコの表記揺れに対応できるよう正規表現を修正
                 regexStr += "[\\s\\s]*\\(プラン変更\\)";
             } else if (item.id === 'unext') {
-                // 通常のU-NEXTがプラン変更側を誤認しないように制御
                 regexStr += "(?!.*プラン変更)";
             }
+            
             const regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
             
@@ -167,7 +169,7 @@
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計のセットが完了しました！（U-NEXTプラン変更も個別に引き継ぎました）");
+        alert("累計のセットが完了しました！（内訳エリアの判定不具合を修正しました）");
     }
 
     function toggleReport(val) {

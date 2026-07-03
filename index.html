@@ -46,7 +46,7 @@
 </head>
 <body>
 
-    <div class="last-update">Update: 2026/07/02 16:36</div>
+    <div class="last-update">Update: 2026/07/03 16:46</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -153,8 +153,11 @@
 
             let regexStr = item.name;
             if (item.suffix) {
-                const escapedSuffix = item.suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                regexStr += "[ ]?" + escapedSuffix;
+                // スペースやカッコの表記揺れに対応できるよう正規表現を修正
+                regexStr += "[\\s\\s]*\\(プラン変更\\)";
+            } else if (item.id === 'unext') {
+                // 通常のU-NEXTがプラン変更側を誤認しないように制御
+                regexStr += "(?!.*プラン変更)";
             }
             const regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
@@ -164,7 +167,7 @@
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計のセットが完了しました！（1枚目/2枚目を区別して読み込みました）");
+        alert("累計のセットが完了しました！（U-NEXTプラン変更も個別に引き継ぎました）");
     }
 
     function toggleReport(val) {

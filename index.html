@@ -46,7 +46,7 @@
 </head>
 <body>
 
-    <div class="last-update">Update: 2026/07/03 16:52</div>
+    <div class="last-update">Update: 2026/07/03 16:58</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -104,7 +104,7 @@
         { id: 'kakeho', name: '１５分カケホ' },
         { id: 'saikyo', name: '最強保護' },
         { id: 'unext', name: 'U-NEXT' },
-        { id: 'unext_change', name: 'U-NEXT', suffix: ' (プラン変更)' },
+        { id: 'unext_existing', name: 'U-NEXT（既存）' }, // 名称変更
         { id: 'hikari', name: 'ひかり' },
         { id: 'turbo', name: 'Turbo' },
         { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' },
@@ -132,8 +132,11 @@
     const container = document.getElementById('kpi-container');
     kpiItems.forEach(item => {
         Y_DATA[item.id] = 0;
-        let label = item.p ? `(${item.p}) ${item.name}` : item.name;
-        if (item.suffix) label += item.suffix;
+        let label = item.p ? `↪︎${item.name} (${item.p})` : item.name;
+        // 画面上の見栄え調整
+        if(item.id.startsWith('c1_') || item.id.startsWith('c2_')) {
+            label = `(${item.p}) ${item.name}`;
+        }
         
         container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
     });
@@ -142,7 +145,6 @@
         const text = document.getElementById('import_text').value;
         if(!text) return alert("貼り付けてください");
         
-        // カード内訳の読み分け用分割処理
         const parts1 = text.split("（内訳：１枚目）");
         const parts2 = text.split("（内訳：２枚目）");
         
@@ -150,26 +152,30 @@
         const area2 = parts2[1] ? parts2[1].split("交換保証")[0] : "";
 
         kpiItems.forEach(item => {
-            let targetText = text; // 基本はテキスト全体から探す
+            let targetText = text; 
             if (item.p === '１枚目') targetText = area1;
             if (item.p === '２枚目') targetText = area2;
 
-            let regexStr = item.name;
-            if (item.suffix) {
-                regexStr += "[\\s\\s]*\\(プラン変更\\)";
+            let regex;
+            if (item.id === 'unext_existing') {
+                // U-NEXT（既存）を完全に狙い撃ち (全角・半角カッコ両対応)
+                regex = new RegExp("U-NEXT[（\\(]既存[）\\)][ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             } else if (item.id === 'unext') {
-                regexStr += "(?!.*プラン変更)";
+                // 後ろに（既存）がつかない通常のU-NEXTだけを抽出
+                regex = new RegExp("U-NEXT[ ]?[：:：][ ]?\\d+件[／/](\\d+)件(?!\\s*[（\\(]既存[）\\)])");
+            } else {
+                let regexStr = item.name;
+                regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             }
             
-            const regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             const match = targetText.match(regex);
-            
             const val = match ? parseInt(match[1]) : 0;
+            
             Y_DATA[item.id] = val;
             document.getElementById(item.id + '_total').value = val;
             document.getElementById(item.id + '_now').innerText = "0";
         });
-        alert("累計のセットが完了しました！（内訳エリアの判定不具合を修正しました）");
+        alert("累計のセットが完了しました！");
     }
 
     function toggleReport(val) {
@@ -233,7 +239,7 @@
         report += `１５分カケホ：${r('kakeho').n}件／${r('kakeho').t}件\n`;
         report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;
         report += `U-NEXT：${r('unext').n}件／${r('unext').t}件\n`;
-        report += `U-NEXT：${r('unext_change').n}件／${r('unext_change').t}件 (プラン変更)\n\n`;
+        report += `U-NEXT（既存）：${r('unext_existing').n}件／${r('unext_existing').t}件\n\n`; // 新フォーマット仕様
 
         report += `ひかり：${r('hikari').n}件／${r('hikari').t}件\n`;
         report += `Turbo：${r('turbo').n}件／${r('turbo').t}件\n\n\n`;

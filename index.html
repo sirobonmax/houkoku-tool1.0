@@ -10,7 +10,6 @@
             background: #f4f4f4; padding: 30px 10px 10px 10px; font-size: 16px; color: #333; margin-bottom: 350px; line-height: 1.4;
             position: relative;
         }
-        /* 右上の更新日時を画面上部に固定 */
         .last-update {
             position: fixed;
             top: 5px;
@@ -46,7 +45,7 @@
 </head>
 <body>
 
-    <div class="last-update">Update: 2026/07/03 16:58</div>
+    <div class="last-update">Update: 2026/07/03 18:03</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -103,8 +102,9 @@
     const kpiItems = [
         { id: 'kakeho', name: '１５分カケホ' },
         { id: 'saikyo', name: '最強保護' },
+        { id: 'whoscall', name: 'whoscall' }, // 新規追加
         { id: 'unext', name: 'U-NEXT' },
-        { id: 'unext_existing', name: 'U-NEXT（既存）' }, // 名称変更
+        { id: 'unext_existing', name: 'U-NEXT（既存）' }, 
         { id: 'hikari', name: 'ひかり' },
         { id: 'turbo', name: 'Turbo' },
         { id: 'c1_sv', name: 'Ｓｖ', p: '１枚目' },
@@ -132,8 +132,7 @@
     const container = document.getElementById('kpi-container');
     kpiItems.forEach(item => {
         Y_DATA[item.id] = 0;
-        let label = item.p ? `↪︎${item.name} (${item.p})` : item.name;
-        // 画面上の見栄え調整
+        let label = item.name;
         if(item.id.startsWith('c1_') || item.id.startsWith('c2_')) {
             label = `(${item.p}) ${item.name}`;
         }
@@ -158,10 +157,8 @@
 
             let regex;
             if (item.id === 'unext_existing') {
-                // U-NEXT（既存）を完全に狙い撃ち (全角・半角カッコ両対応)
                 regex = new RegExp("U-NEXT[（\\(]既存[）\\)][ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             } else if (item.id === 'unext') {
-                // 後ろに（既存）がつかない通常のU-NEXTだけを抽出
                 regex = new RegExp("U-NEXT[ ]?[：:：][ ]?\\d+件[／/](\\d+)件(?!\\s*[（\\(]既存[）\\)])");
             } else {
                 let regexStr = item.name;
@@ -238,17 +235,24 @@
         
         report += `１５分カケホ：${r('kakeho').n}件／${r('kakeho').t}件\n`;
         report += `最強保護：${r('saikyo').n}件／${r('saikyo').t}件\n`;
+        report += `whoscall：${r('whoscall').n}件／${r('whoscall').t}件\n`; // 新フォーマット仕様
         report += `U-NEXT：${r('unext').n}件／${r('unext').t}件\n`;
-        report += `U-NEXT（既存）：${r('unext_existing').n}件／${r('unext_existing').t}件\n\n`; // 新フォーマット仕様
+        report += `U-NEXT（既存）：${r('unext_existing').n}件／${r('unext_existing').t}件\n\n`;
 
         report += `ひかり：${r('hikari').n}件／${r('hikari').t}件\n`;
         report += `Turbo：${r('turbo').n}件／${r('turbo').t}件\n\n\n`;
 
         const cids = ['c1_sv','c1_pk','c1_go','c1_pr','c2_sv','c2_pk','c2_go','c2_pr'];
         report += `カード：${cids.reduce((s, id) => s + r(id).n, 0)}件／${cids.reduce((s, id) => s + r(id).t, 0)}件\n（内訳：１枚目）\n`;
-        ['c1_sv','c1_pk','c1_go','c1_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += ` Northrop Ｓｖ：${r('c1_sv').n}件／${r('c1_sv').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｐｋ：${r('c1_pk').n}件／${r('c1_pk').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｇｏ：${r('c1_go').n}件／${r('c1_go').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｐｒ：${r('c1_pr').n}件／${r('c1_pr').t}件\n`.replace(' Northrop ', '↪︎');
         report += `\n（内訳：２枚目）\n`;
-        ['c2_sv','c2_pk','c2_go','c2_pr'].forEach(id => report += `↪︎${kpiItems.find(x=>x.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
+        report += ` Northrop Ｓｖ：${r('c2_sv').n}件／${r('c2_sv').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｐｋ：${r('c2_pk').n}件／${r('c2_pk').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｇｏ：${r('c2_go').n}件／${r('c2_go').t}件\n`.replace(' Northrop ', '↪︎');
+        report += ` Northrop Ｐｒ：${r('c2_pr').n}件／${r('c2_pr').t}件\n`.replace(' Northrop ', '↪︎');
         report += `\n`;
 
         ['hosho', 'appcare', 'mochikomi', 'rusuban'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
@@ -256,12 +260,6 @@
         
         report += `楽天ペイ設定数：${r('rpay').n}件／${r('rpay').t}件\n`;
         report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件\n`;
-
-        report += `\n---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
-        ['adguard', 'pika', 'aosbox'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
-        
-        report += `\n---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
-        ['reno13a', 'reno11a', 'charger'].forEach(id => report += `${kpiItems.find(k=>k.id===id).name}：${r(id).n}件／${r(id).t}件\n`);
 
         document.getElementById('report_text').value = report;
         document.getElementById('report_text').scrollIntoView({behavior: "smooth"});

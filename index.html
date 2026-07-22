@@ -45,8 +45,7 @@
 </head>
 <body>
 
-    <!-- id="date_label" を付与してJavaScriptから動的に変更できるようにしました -->
-    <div class="last-update" id="date_label">Update: 加盟中...</div>
+    <div class="last-update" id="date_label">Update: ...</div>
 
     <div class="section" style="background: #e3f2fd;">
         <h3>前日の報告を貼り付け</h3>
@@ -91,6 +90,14 @@
         <h3>KPI / その他</h3>
     </div>
 
+    <div id="pp3rd-container" class="section">
+        <h3>3rdPP</h3>
+    </div>
+
+    <div id="oppo-container" class="section">
+        <h3>OPPO</h3>
+    </div>
+
     <div id="preview-area">
         <button class="btn-main" onclick="generateReport()">レポートを作成</button>
         <textarea id="report_text" readonly placeholder="ここにレポートが生成されます"></textarea>
@@ -98,7 +105,7 @@
     </div>
 
 <script>
-    // ページ読み込み時に現在のリアルタイムな日時に自動書き換えする処理
+    // ページ読み込み時に本日の日時に自動更新する処理
     window.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const y = now.getFullYear();
@@ -137,16 +144,35 @@
         { id: 'enq', name: 'アンケ回答数' }
     ];
 
-    const container = document.getElementById('kpi-container');
-    kpiItems.forEach(item => {
-        Y_DATA[item.id] = 0;
-        let label = item.name;
-        if(item.id.startsWith('c1_') || item.id.startsWith('c2_')) {
-            label = `(${item.p}) ${item.name}`;
-        }
-        
-        container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
-    });
+    const pp3rdItems = [
+        { id: 'adguard', name: 'ADGuard' },
+        { id: 'pikapro', name: 'ピカプロDX' },
+        { id: 'aosbox', name: 'AOSBOX' }
+    ];
+
+    const oppoItems = [
+        { id: 'reno13a', name: 'Reno13A' },
+        { id: 'reno11a', name: 'Reno11A' },
+        { id: 'supervooc', name: 'SUPERVOOC充電器' }
+    ];
+
+    const allItems = [...kpiItems, ...pp3rdItems, ...oppoItems];
+
+    function buildUI(items, targetContainerId) {
+        const container = document.getElementById(targetContainerId);
+        items.forEach(item => {
+            Y_DATA[item.id] = 0;
+            let label = item.name;
+            if(item.id.startsWith('c1_') || item.id.startsWith('c2_')) {
+                label = `(${item.p}) ${item.name}`;
+            }
+            container.innerHTML += `<div class="item"><span class="item-label">${label}</span><div class="controls"><div class="counter-group"><button onclick="changeKPI('${item.id}', -1)">-</button><span id="${item.id}_now" class="count-val">0</span><button onclick="changeKPI('${item.id}', 1)">+</button></div><div><span style="font-size:12px;color:#666;">累計:</span><input type="number" id="${item.id}_total" value="0" class="total-input" readonly></div></div></div>`;
+        });
+    }
+
+    buildUI(kpiItems, 'kpi-container');
+    buildUI(pp3rdItems, 'pp3rd-container');
+    buildUI(oppoItems, 'oppo-container');
 
     function importFromReport() {
         const text = document.getElementById('import_text').value;
@@ -158,7 +184,7 @@
         const area1 = parts1[1] ? parts1[1].split("（内訳：２枚目）")[0] : "";
         const area2 = parts2[1] ? parts2[1].split("交換保証")[0] : "";
 
-        kpiItems.forEach(item => {
+        allItems.forEach(item => {
             let targetText = text; 
             if (item.p === '１枚目') targetText = area1;
             if (item.p === '２枚目') targetText = area2;
@@ -169,7 +195,7 @@
             } else if (item.id === 'unext') {
                 regex = new RegExp("U-NEXT[ ]?[：:：][ ]?\\d+件[／/](\\d+)件(?!\\s*[（\\(]既存[）\\)])");
             } else {
-                let regexStr = item.name;
+                let regexStr = item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 regex = new RegExp(regexStr + "[ ]?[：:：][ ]?\\d+件[／/](\\d+)件");
             }
             
@@ -271,6 +297,16 @@
         
         report += `楽天ペイ設定数：${r('rpay').n}件／${r('rpay').t}件\n`;
         report += `アンケ回答数：${r('enq').n}件／${r('enq').t}件\n`;
+        report += `---------------------------------\n\n★3rdPP（〜時まで獲得数／累計）\n\n`;
+
+        report += `ADGuard：${r('adguard').n}件／${r('adguard').t}件\n`;
+        report += `ピカプロDX：${r('pikapro').n}件／${r('pikapro').t}件\n`;
+        report += `AOSBOX：${r('aosbox').n}件／${r('aosbox').t}件\n\n`;
+        report += `---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
+
+        report += `Reno13A：${r('reno13a').n}件／${r('reno13a').t}件\n`;
+        report += `Reno11A：${r('reno11a').n}件／${r('reno11a').t}件\n`;
+        report += `SUPERVOOC充電器：${r('supervooc').n}件／${r('supervooc').t}件\n`;
 
         document.getElementById('report_text').value = report;
         document.getElementById('report_text').scrollIntoView({behavior: "smooth"});

@@ -94,8 +94,8 @@
         <h3>3rdPP</h3>
     </div>
 
-    <div id="oppo-container" class="section">
-        <h3>OPPO</h3>
+    <div id="hotdev-container" class="section">
+        <h3>熱い端末他</h3>
     </div>
 
     <div id="preview-area">
@@ -150,13 +150,12 @@
         { id: 'aosbox', name: 'AOSBOX' }
     ];
 
-    const oppoItems = [
-        { id: 'reno13a', name: 'Reno13A' },
-        { id: 'reno11a', name: 'Reno11A' },
-        { id: 'supervooc', name: 'SUPERVOOC充電器' }
+    const hotDeviceItems = [
+        { id: 'galaxys26', name: 'GalaxyS26' },
+        { id: 'reno15a', name: 'Reno15A' }
     ];
 
-    const allItems = [...kpiItems, ...pp3rdItems, ...oppoItems];
+    const allItems = [...kpiItems, ...pp3rdItems, ...hotDeviceItems];
 
     function buildUI(items, targetContainerId) {
         const container = document.getElementById(targetContainerId);
@@ -172,7 +171,7 @@
 
     buildUI(kpiItems, 'kpi-container');
     buildUI(pp3rdItems, 'pp3rd-container');
-    buildUI(oppoItems, 'oppo-container');
+    buildUI(hotDeviceItems, 'hotdev-container');
 
     function importFromReport() {
         const text = document.getElementById('import_text').value;
@@ -302,11 +301,10 @@
         report += `ADGuard：${r('adguard').n}件／${r('adguard').t}件\n`;
         report += `ピカプロDX：${r('pikapro').n}件／${r('pikapro').t}件\n`;
         report += `AOSBOX：${r('aosbox').n}件／${r('aosbox').t}件\n\n`;
-        report += `---------------------------------\n\n★OPPO（〜時まで獲得数／累計）\n\n`;
+        report += `---------------------------------\n\n★熱い端末他（〜時まで獲得数／累計）\n\n`;
 
-        report += `Reno13A：${r('reno13a').n}件／${r('reno13a').t}件\n`;
-        report += `Reno11A：${r('reno11a').n}件／${r('reno11a').t}件\n`;
-        report += `SUPERVOOC充電器：${r('supervooc').n}件／${r('supervooc').t}件\n`;
+        report += `GalaxyS26：${r('galaxys26').n}件／${r('galaxys26').t}件\n`;
+        report += `Reno15A：${r('reno15a').n}件／${r('reno15a').t}件\n`;
 
         document.getElementById('report_text').value = report;
         document.getElementById('report_text').scrollIntoView({behavior: "smooth"});
